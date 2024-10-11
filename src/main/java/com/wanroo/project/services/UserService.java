@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import com.wanroo.project.entities.User;
 import com.wanroo.project.repositories.UserRepository;
+import com.wanroo.project.services.exceptions.DatabaseException;
 import com.wanroo.project.services.exceptions.ResourceNotFoundException;
 
 @Service
@@ -31,7 +33,16 @@ public class UserService {
 	}
 	
 	public void delete(Long id) {
-		repository.deleteById(id);
+		try {
+			// Verifica se o usuário existe antes de deletar
+			Optional<User> obj = repository.findById(id);
+			if (obj.isEmpty()) {
+				throw new ResourceNotFoundException(id); // Lança exceção 404 se não encontrado
+			}
+			repository.deleteById(id);
+		} catch (DataIntegrityViolationException e) {
+			throw new DatabaseException(e.getMessage()); // Loga o stack trace da exceção
+		}
 	}
 	
 	public User update(Long id, User obj) {
